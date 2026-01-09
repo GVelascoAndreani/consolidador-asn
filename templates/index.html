@@ -100,7 +100,18 @@ const downloadBtn = document.getElementById("downloadBtn");
 let processedWorkbook = null;
 let originalFileName = "";
 
-// eventos
+/* ---------- UTIL ---------- */
+function toNumber(val) {
+  if (val === null || val === undefined) return 0;
+  return Number(
+    val
+      .toString()
+      .replace(",", ".")
+      .trim()
+  ) || 0;
+}
+
+/* ---------- EVENTS ---------- */
 uploadArea.onclick = () => fileInput.click();
 uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add("dragover"); };
 uploadArea.ondragleave = () => uploadArea.classList.remove("dragover");
@@ -111,7 +122,10 @@ uploadArea.ondrop = e => {
 };
 fileInput.onchange = e => processFile(e.target.files[0]);
 
+/* ---------- MAIN ---------- */
 function processFile(file) {
+  if (!file) return;
+
   originalFileName = file.name.replace(/\.[^/.]+$/, "");
   loading.classList.add("show");
   result.classList.remove("show");
@@ -121,27 +135,29 @@ function processFile(file) {
     try {
       const workbook = XLSX.read(new Uint8Array(e.target.result), { type:"array" });
 
+      /* ---------- SHEETS ---------- */
       const dataSheet = workbook.Sheets["Data"];
       const detailSheet = workbook.Sheets["Detail"];
       if (!dataSheet || !detailSheet) throw "Faltan hojas Data o Detail";
 
-      // ---------- DATA ----------
+      /* ---------- DATA ---------- */
       const dataRows = XLSX.utils.sheet_to_json(dataSheet, { defval:"" });
       const remitoPorASN = {};
+
       dataRows.forEach(r => {
         if (r.RECEIPTKEY) {
-          remitoPorASN[String(r.RECEIPTKEY).trim()] = r.EXTERNALRECEIPTKEY2;
+          remitoPorASN[String(r.RECEIPTKEY).trim()] = r.EXTERNALRECEIPTKEY2 || "";
         }
       });
 
-      // ---------- DETAIL ----------
+      /* ---------- DETAIL ---------- */
       const detailRows = XLSX.utils.sheet_to_json(detailSheet, { defval:"" });
       const asnMap = {};
 
       detailRows.forEach(r => {
         const asn = String(r.RECEIPTKEY || "").trim();
-        const qtyReceived = Number(r.QTYRECEIVED);
-        const qtyExpected = Number(r.QTYEXPECTED);
+        const qtyReceived = toNumber(r.QTYRECEIVED);
+        const qtyExpected = toNumber(r.QTYEXPECTED);
 
         if (!asn) return;
 
@@ -150,22 +166,23 @@ function processFile(file) {
             asnMap[asn] = {
               ASN: asn,
               Remito: remitoPorASN[asn] || "",
-              Propietario: r.STORERKEY,
-              FechaRecepcion: r.DATERECEIVED,
-              ASNExterna: r.EXTERNRECEIPTKEY,
+              Propietario: r.STORERKEY || "",
+              FechaRecepcion: r.DATERECEIVED || "",
+              ASNExterna: r.EXTERNRECEIPTKEY || "",
               Pallets: 0,
               Lotes: new Set()
             };
           }
+
           asnMap[asn].Pallets++;
 
-          if (r.LOTTABLE02 && String(r.LOTTABLE02).trim() !== "") {
-            asnMap[asn].Lotes.add(String(r.LOTTABLE02).trim());
+          if (r.LOTTABLE02?.toString().trim()) {
+            asnMap[asn].Lotes.add(r.LOTTABLE02.toString().trim());
           }
         }
       });
 
-      // ---------- RESULT ----------
+      /* ---------- RESULT ---------- */
       const finalData = Object.values(asnMap).map(x => ({
         ASN: x.ASN,
         Remito: x.Remito,
