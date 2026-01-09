@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Consolidador ASN</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
@@ -89,6 +90,7 @@ input[type=file]{display:none}
 </div>
 
 <script>
+/* ---------- DOM ---------- */
 const uploadArea = document.getElementById("uploadArea");
 const fileInput = document.getElementById("fileInput");
 const loading = document.getElementById("loading");
@@ -101,25 +103,32 @@ let processedWorkbook = null;
 let originalFileName = "";
 
 /* ---------- UTIL ---------- */
+function normalizeKey(key) {
+  if (!key) return "";
+  return String(key).replace(/[^\d]/g, "").trim();
+}
+
 function toNumber(val) {
-  if (val === null || val === undefined) return 0;
-  return Number(
-    val
-      .toString()
-      .replace(",", ".")
-      .trim()
-  ) || 0;
+  if (!val) return 0;
+  return Number(String(val).replace(/[^\d]/g, "")) || 0;
 }
 
 /* ---------- EVENTS ---------- */
 uploadArea.onclick = () => fileInput.click();
-uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add("dragover"); };
+
+uploadArea.ondragover = e => {
+  e.preventDefault();
+  uploadArea.classList.add("dragover");
+};
+
 uploadArea.ondragleave = () => uploadArea.classList.remove("dragover");
+
 uploadArea.ondrop = e => {
   e.preventDefault();
   uploadArea.classList.remove("dragover");
   processFile(e.dataTransfer.files[0]);
 };
+
 fileInput.onchange = e => processFile(e.target.files[0]);
 
 /* ---------- MAIN ---------- */
@@ -131,31 +140,36 @@ function processFile(file) {
   result.classList.remove("show");
 
   const reader = new FileReader();
+
   reader.onload = e => {
     try {
-      const workbook = XLSX.read(new Uint8Array(e.target.result), { type:"array" });
+      const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
 
-      /* ---------- SHEETS ---------- */
       const dataSheet = workbook.Sheets["Data"];
       const detailSheet = workbook.Sheets["Detail"];
-      if (!dataSheet || !detailSheet) throw "Faltan hojas Data o Detail";
+      if (!dataSheet || !detailSheet) {
+        throw new Error("Faltan las hojas Data o Detail");
+      }
 
       /* ---------- DATA ---------- */
-      const dataRows = XLSX.utils.sheet_to_json(dataSheet, { defval:"" });
+      const dataRows = XLSX.utils.sheet_to_json(dataSheet, { defval: "" });
       const remitoPorASN = {};
 
       dataRows.forEach(r => {
         if (r.RECEIPTKEY) {
-          remitoPorASN[String(r.RECEIPTKEY).trim()] = r.EXTERNALRECEIPTKEY2 || "";
+          remitoPorASN[normalizeKey(r.RECEIPTKEY)] = r.EXTERNALRECEIPTKEY2 || "";
         }
       });
 
       /* ---------- DETAIL ---------- */
-      const detailRows = XLSX.utils.sheet_to_json(detailSheet, { defval:"" });
+      const detailRows = XLSX.utils.sheet_to_json(detailSheet, { defval: "" });
+
+      console.log("Detail rows:", detailRows.length);
+
       const asnMap = {};
 
       detailRows.forEach(r => {
-        const asn = String(r.RECEIPTKEY || "").trim();
+        const asn = normalizeKey(r.RECEIPTKEY);
         const qtyReceived = toNumber(r.QTYRECEIVED);
         const qtyExpected = toNumber(r.QTYEXPECTED);
 
@@ -176,7 +190,7 @@ function processFile(file) {
 
           asnMap[asn].Pallets++;
 
-          if (r.LOTTABLE02?.toString().trim()) {
+          if (r.LOTTABLE02 && r.LOTTABLE02.toString().trim()) {
             asnMap[asn].Lotes.add(r.LOTTABLE02.toString().trim());
           }
         }
@@ -202,14 +216,15 @@ function processFile(file) {
       resultTitle.textContent = "✅ Archivo procesado";
       resultText.textContent = `ASN procesados: ${finalData.length}`;
 
-      downloadBtn.onclick = () =>
+      downloadBtn.onclick = () => {
         XLSX.writeFile(processedWorkbook, originalFileName + "_consolidado.xlsx");
+      };
 
     } catch (err) {
       loading.classList.remove("show");
       result.classList.add("show");
       resultTitle.textContent = "❌ Error";
-      resultText.textContent = "Error procesando el archivo";
+      resultText.textContent = err.message || "Error procesando el archivo";
       console.error(err);
     }
   };
@@ -219,3 +234,4 @@ function processFile(file) {
 </script>
 </body>
 </html>
+
