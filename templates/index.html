@@ -108,105 +108,14 @@
             <p>Procesando archivo...</p>
         </div>
         
-        <div class="result" id="result">
-            <h3 id="resultTitle">✅ Archivo procesado</h3>
-            <p id="resultText"></p>
-        </div>
-    </div>
+      <div class="result" id="result">
+          <div class="result" id="result">
+    <h3 id="
 
-    <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const loading = document.getElementById('loading');
-        const result = document.getElementById('result');
-        const resultTitle = document.getElementById('resultTitle');
-        const resultText = document.getElementById('resultText');
+    <h3 id="resultTitle">✅ Archivo procesado</h3>
+    <p id="resultText"></p>
+    <a id="downloadBtn" class="btn" style="display:none;" download>📥 Descargar Excel Procesado</a>
+</div>
 
-        uploadBtn.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('click', () => fileInput.click());
-
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                fileInput.files = files;
-                handleFile(files[0]);
-            }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            }
-        });
-
-        function handleFile(file) {
-            const validTypes = [
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/vnd.ms-excel',
-                'text/csv'
-            ];
-            if (!validTypes.includes(file.type)) {
-                showError('Por favor sube un archivo Excel (.xlsx, .xls) o CSV');
-                return;
-            }
-            if (file.size > 16 * 1024 * 1024) {
-                showError('El archivo es demasiado grande (máximo 16MB)');
-                return;
-            }
-            uploadFile(file);
-        }
-
-        function uploadFile(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            loading.classList.add('show');
-            result.classList.remove('show');
-
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                loading.classList.remove('show');
-                if (data.success) {
-                    resultTitle.textContent = '✅ Archivo procesado correctamente';
-                    resultText.innerHTML = `
-                        <strong>Archivo:</strong> ${data.filename}<br>
-                        <strong>Filas procesadas:</strong> ${data.rows}<br>
-                        <strong>Estado:</strong> Listo para descargar
-                    `;
-                    result.classList.remove('error');
-                    result.classList.add('show');
-                } else {
-                    showError(data.error || 'Error procesando archivo');
-                }
-            })
-            .catch(err => {
-                loading.classList.remove('show');
-                showError('Error: ' + err.message);
-            });
-        }
-
-        function showError(message) {
-            resultTitle.textContent = '❌ Error';
-            resultText.textContent = message;
-            result.classList.add('error');
-            result.classList.add('show');
-        }
-    </script>
 </body>
 </html>
