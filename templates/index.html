@@ -1,427 +1,213 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consolidador ASN Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 25px 70px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 { font-size: 32px; margin-bottom: 10px; }
-        .header p { font-size: 16px; opacity: 0.9; }
-        
-        .content {
-            padding: 40px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-        }
-        
-        .upload-section {
-            border: 2px dashed #667eea;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f8f9ff;
-        }
-        .upload-section:hover { 
-            background: #f0f2ff; 
-            border-color: #764ba2;
-            transform: translateY(-5px);
-        }
-        .upload-section.dragover {
-            background: #e8ebff;
-            border-color: #764ba2;
-            transform: scale(1.02);
-        }
-        .upload-icon { font-size: 64px; margin-bottom: 20px; }
-        .upload-text { font-size: 24px; font-weight: 600; color: #333; margin-bottom: 10px; }
-        input[type="file"] { display: none; }
-        
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 40px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: inline-block;
-            text-decoration: none;
-            margin: 10px;
-        }
-        .btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(102,126,234,0.4); }
-        .btn:active { transform: translateY(0); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        
-        .result-section {
-            background: #f8f9ff;
-            border-radius: 12px;
-            padding: 30px;
-            border-left: 5px solid #667eea;
-        }
-        .result-section h3 { color: #667eea; margin-bottom: 20px; font-size: 20px; }
-        .stats { display: flex; gap: 20px; margin-bottom: 30px; }
-        .stat { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 8px; 
-            text-align: center; 
-            flex: 1; 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .stat-value { font-size: 28px; font-weight: bold; color: #667eea; }
-        .stat-label { color: #666; font-size: 14px; }
-        
-        .download-area { text-align: center; }
-        .loading {
-            display: none; text-align: center; padding: 40px;
-        }
-        .loading.show { display: block; }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        @media (max-width: 768px) {
-            .content { grid-template-columns: 1fr; gap: 20px; padding: 20px; }
-            .stats { flex-direction: column; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consolidador ASN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.container {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+}
+h1 { margin-bottom: 10px; }
+.subtitle { color: #666; margin-bottom: 30px; }
+
+.upload-area {
+  border: 2px dashed #667eea;
+  padding: 40px;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #f8f9ff;
+}
+.upload-area.dragover {
+  background: #e8ebff;
+}
+.upload-icon { font-size: 48px; }
+.upload-text { font-weight: bold; }
+
+input[type="file"] { display: none; }
+
+.loading { display: none; text-align: center; margin-top: 20px; }
+.loading.show { display: block; }
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #eee;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.result {
+  display: none;
+  margin-top: 20px;
+  padding: 20px;
+  background: #f0f9ff;
+  border-left: 4px solid #667eea;
+}
+.result.show { display: block; }
+
+.btn {
+  margin-top: 15px;
+  display: inline-block;
+  background: #667eea;
+  color: white;
+  padding: 10px 25px;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+}
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 Consolidador ASN Pro</h1>
-            <p>Consolida datos de "Datos Brutos" + "Remitos" → "RESUMEN MENSUAL" (Igual que tu VBA)</p>
-        </div>
-        
-        <div class="content">
-            <div>
-                <div class="upload-section" id="datosSection">
-                    <div class="upload-icon">📊</div>
-                    <div class="upload-text">Datos Brutos (completar)</div>
-                    <input type="file" id="datosInput" accept=".xlsx,.xls">
-                    <div style="font-size: 14px; color: #999; margin-top: 10px;">
-                        Columna A: ASN | D: Cantidad | etc.
-                    </div>
-                </div>
-                
-                <div class="upload-section" id="remitosSection" style="margin-top: 20px;">
-                    <div class="upload-icon">📋</div>
-                    <div class="upload-text">Remitos (completar)</div>
-                    <input type="file" id="remitosInput" accept=".xlsx,.xls">
-                    <div style="font-size: 14px; color: #999; margin-top: 10px;">
-                        Columna A: ASN | B: Remito
-                    </div>
-                </div>
-                
-                <button class="btn" id="processBtn" style="width: 100%; margin-top: 20px;">🚀 Consolidar ASN</button>
-            </div>
-            
-            <div class="result-section" id="resultSection" style="display: none;">
-                <h3>✅ Resultados de Consolidación</h3>
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-value" id="asnCount">-</div>
-                        <div class="stat-label">ASN Únicas</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value" id="totalPallets">-</div>
-                        <div class="stat-label">Total Pallets</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value" id="totalLotes">-</div>
-                        <div class="stat-label">Lotes Únicos</div>
-                    </div>
-                </div>
-                <div class="download-area">
-                    <a id="downloadBtn" class="btn" style="display: none;">📥 Descargar RESUMEN MENSUAL.xlsx</a>
-                    <button id="clearBtn" class="btn" style="background: #f44; display: none;">🗑️ Limpiar Datos</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Procesando datos... (igual que tu macro VBA)</p>
-        </div>
-    </div>
+<div class="container">
+  <h1>🚀 Consolidador ASN</h1>
+  <p class="subtitle">Subí el archivo Excel</p>
 
-    <script>
-        // Elementos DOM
-        const datosSection = document.getElementById('datosSection');
-        const remitosSection = document.getElementById('remitosSection');
-        const datosInput = document.getElementById('datosInput');
-        const remitosInput = document.getElementById('remitosInput');
-        const processBtn = document.getElementById('processBtn');
-        const loading = document.getElementById('loading');
-        const resultSection = document.getElementById('resultSection');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const asnCountEl = document.getElementById('asnCount');
-        const totalPalletsEl = document.getElementById('totalPallets');
-        const totalLotesEl = document.getElementById('totalLotes');
+  <div class="upload-area" id="uploadArea">
+    <div class="upload-icon">📊</div>
+    <div class="upload-text">Arrastrá el archivo o hacé click</div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+  </div>
 
-        let datosBrutos = null;
-        let remitosData = null;
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    Procesando archivo...
+  </div>
 
-        // Drag & Drop y Click handlers
-        function setupUpload(section, input) {
-            section.addEventListener('click', () => input.click());
-            section.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                section.classList.add('dragover');
-            });
-            section.addEventListener('dragleave', () => section.classList.remove('dragover'));
-            section.addEventListener('drop', (e) => {
-                e.preventDefault();
-                section.classList.remove('dragover');
-                if (e.dataTransfer.files[0]) input.files = e.dataTransfer.files;
-                handleFile(input);
-            });
-            input.addEventListener('change', () => handleFile(input));
-        }
+  <div class="result" id="result">
+    <h3 id="resultTitle"></h3>
+    <p id="resultText"></p>
+    <a class="btn" id="downloadBtn">📥 Descargar Excel</a>
+  </div>
+</div>
 
-        function handleFile(input) {
-            if (input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    if (input.id === 'datosInput') {
-                        datosBrutos = workbook;
-                        datosSection.querySelector('.upload-text').textContent = '✅ Datos Brutos cargados';
-                    } else {
-                        remitosData = workbook;
-                        remitosSection.querySelector('.upload-text').textContent = '✅ Remitos cargados';
-                    }
-                    checkReady();
-                };
-                reader.readAsArrayBuffer(input.files[0]);
-            }
-        }
+<script>
+const uploadArea = document.getElementById("uploadArea");
+const fileInput = document.getElementById("fileInput");
+const loading = document.getElementById("loading");
+const result = document.getElementById("result");
+const resultTitle = document.getElementById("resultTitle");
+const resultText = document.getElementById("resultText");
+const downloadBtn = document.getElementById("downloadBtn");
 
-        function checkReady() {
-            processBtn.disabled = !(datosBrutos && remitosData);
-            processBtn.textContent = datosBrutos && remitosData ? '🚀 Consolidar ASN' : 'Carga ambos archivos primero';
-        }
+let processedWorkbook = null;
+let originalFileName = "";
 
-        setupUpload(datosSection, datosInput);
-        setupUpload(remitosSection, remitosInput);
+// Eventos
+uploadArea.onclick = () => fileInput.click();
+uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add("dragover"); };
+uploadArea.ondragleave = () => uploadArea.classList.remove("dragover");
+uploadArea.ondrop = e => {
+  e.preventDefault();
+  uploadArea.classList.remove("dragover");
+  processFile(e.dataTransfer.files[0]);
+};
+fileInput.onchange = e => processFile(e.target.files[0]);
 
-        // LÓGICA EXACTA DE TU VBA
-        processBtn.addEventListener('click', () => {
-            if (!datosBrutos || !remitosData) return;
-            
-            showLoading();
-            
-            setTimeout(() => {
-                const resultado = procesarComoVBA();
-                showResult(resultado);
-            }, 1000);
-        });
+function processFile(file) {
+  originalFileName = file.name.replace(/\.[^/.]+$/, "");
+  loading.classList.add("show");
+  result.classList.remove("show");
 
-        function procesarComoVBA() {
-            // Diccionario ASN (igual que VBA)
-            const dicASN = {};
-            const wsDatos = datosBrutos.Sheets['Datos Brutos (completar)'];
-            const ultimaFila = XLSX.utils.decode_range(wsDatos['!ref']).e.r + 1;
+  const reader = new FileReader();
 
-            // PASO 1: Crear diccionario ASN
-            for (let i = 1; i < ultimaFila; i++) { // Fila 2 en VBA = índice 1
-                const asnCell = XLSX.utils.encode_cell({ r: i, c: 0 });
-                const loteCell = XLSX.utils.encode_cell({ r: i, c: 6 });
-                const asn = wsDatos[asnCell]?.v || '';
-                const lote = wsDatos[loteCell]?.v || '';
+  reader.onload = function (e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
 
-                if (asn) {
-                    if (!dicASN[asn]) {
-                        const cantidadCell = XLSX.utils.encode_cell({ r: i, c: 3 });
-                        const propietarioCell = XLSX.utils.encode_cell({ r: i, c: 2 });
-                        const umCell = XLSX.utils.encode_cell({ r: i, c: 4 });
-                        const fechaCell = XLSX.utils.encode_cell({ r: i, c: 5 });
-                        
-                        const cantidadLimpia = String(wsDatos[cantidadCell]?.v || 0)
-                            .replace(/,/g, '').replace(/\.00000/g, '');
-                        
-                        dicASN[asn] = {
-                            count: 1,
-                            propietario: wsDatos[propietarioCell]?.v || '',
-                            cantidad: parseInt(cantidadLimpia),
-                            um: wsDatos[umCell]?.v || '',
-                            fecha: wsDatos[fechaCell]?.v || ''
-                        };
-                    } else {
-                        dicASN[asn].count++;
-                        const cantidadCell = XLSX.utils.encode_cell({ r: i, c: 3 });
-                        const cantidadLimpia = String(wsDatos[cantidadCell]?.v || 0)
-                            .replace(/,/g, '').replace(/\.00000/g, '');
-                        dicASN[asn].cantidad += parseInt(cantidadLimpia);
-                    }
-                }
-            }
+      const dataSheet = workbook.Sheets["Data"];
+      const detailSheet = workbook.Sheets["Detail"];
+      if (!dataSheet || !detailSheet) throw "Faltan hojas";
 
-            // PASO 2: Procesar Remitos
-            const wsRemitos = remitosData.Sheets['Remitos (completar)'];
-            const remitosUltimaFila = wsRemitos ? XLSX.utils.decode_range(wsRemitos['!ref']).e.r + 1 : 0;
-            const dicRemitos = {};
-            for (let j = 1; j < remitosUltimaFila; j++) {
-                const asnCell = XLSX.utils.encode_cell({ r: j, c: 0 });
-                const remitoCell = XLSX.utils.encode_cell({ r: j, c: 1 });
-                const asn = wsRemitos[asnCell]?.v;
-                const remito = wsRemitos[remitoCell]?.v;
-                if (asn) dicRemitos[asn] = remito;
-            }
+      // DATA
+      const dataRows = XLSX.utils.sheet_to_json(dataSheet, { header: 1 });
+      const asnRemito = {};
+      dataRows.slice(1).forEach(r => {
+        if (r[0]) asnRemito[r[0]] = r[27]; // AB
+      });
 
-            // PASO 3: Crear hoja resultado
-            const resumenData = [];
-            
-            // Headers
-            resumenData.push(['ASN', 'Pallets', 'Lotes', 'Propietario', 'Cantidad', 'UM', 'Fecha', 'Remito']);
-            
-            let totalPallets = 0, totalLotesUnicos = 0;
-            
-            Object.keys(dicASN).forEach(asn => {
-                const data = dicASN[asn];
-                
-                // Contar lotes únicos
-                let lotesUnicos = 0;
-                for (let i = 1; i < ultimaFila; i++) {
-                    const asnCell = XLSX.utils.encode_cell({ r: i, c: 0 });
-                    const loteCell = XLSX.utils.encode_cell({ r: i, c: 6 });
-                    if (wsDatos[asnCell]?.v === asn) {
-                        const lote = wsDatos[loteCell]?.v;
-                        if (lote && !resumenData.some(row => row[0] === lote)) {
-                            lotesUnicos++;
-                            resumenData.push([lote, '', '', '', '', '', '', '']); // Placeholder
-                        }
-                    }
-                }
-                
-                // Descuento especial
-                let palletsFinal = data.count;
-                const prop = String(data.propietario).toUpperCase();
-                if (['ABBVIE', 'ROCHE', 'ASTRA', 'GENZYME'].some(p => prop.includes(p))) {
-                    palletsFinal = Math.max(1, data.count - 1);
-                }
-                
-                totalPallets += palletsFinal;
-                totalLotesUnicos += lotesUnicos;
-                
-                resumenData[0] = ['ASN', 'Pallets', 'Lotes', 'Propietario', 'Cantidad', 'UM', 'Fecha', 'Remito']; // Header
-                resumenData.push([
-                    asn,
-                    palletsFinal,
-                    lotesUnicos,
-                    data.propietario,
-                    data.cantidad,
-                    data.um,
-                    data.fecha,
-                    dicRemitos[asn] || ''
-                ]);
-            });
+      // DETAIL
+      const detailRows = XLSX.utils.sheet_to_json(detailSheet, { header: 1 });
+      const resultMap = {};
 
-            // Ordenar por fecha DESC
-            resumenData.slice(1).sort((a, b) => {
-                const fechaA = new Date(a[6]);
-                const fechaB = new Date(b[6]);
-                return fechaB - fechaA;
-            });
+      detailRows.slice(1).forEach(r => {
+        const asn = r[0];
+        const cantEsperada = r[13];
+        const cantRecibida = r[14];
 
-            return {
-                data: resumenData,
-                stats: {
-                    asnCount: Object.keys(dicASN).length,
-                    totalPallets,
-                    totalLotes: totalLotesUnicos
-                }
+        if (asn && cantRecibida > 0 && cantEsperada === 0) {
+          if (!resultMap[asn]) {
+            resultMap[asn] = {
+              ASN: asn,
+              Remito: asnRemito[asn] || "",
+              Propietario: r[4],
+              FechaRecepcion: r[33],
+              ASNExterna: r[39],
+              Pallets: 0,
+              Lotes: new Set()
             };
+          }
+          resultMap[asn].Pallets++;
+          if (r[16]) resultMap[asn].Lotes.add(r[16]);
         }
+      });
 
-        function showLoading() {
-            loading.classList.add('show');
-            resultSection.style.display = 'none';
-            processBtn.disabled = true;
-        }
+      const finalData = Object.values(resultMap).map(x => ({
+        ASN: x.ASN,
+        Remito: x.Remito,
+        Propietario: x.Propietario,
+        FechaRecepcion: x.FechaRecepcion,
+        ASNExterna: x.ASNExterna,
+        Pallets: x.Pallets,
+        CantidadLotes: x.Lotes.size
+      }));
 
-        function showResult(resultado) {
-            loading.classList.remove('show');
-            resultSection.style.display = 'block';
-            
-            asnCountEl.textContent = resultado.stats.asnCount;
-            totalPalletsEl.textContent = resultado.stats.totalPallets;
-            totalLotesEl.textContent = resultado.stats.totalLotes;
-            
-            // Crear workbook para descarga
-            const ws = XLSX.utils.aoa_to_sheet(resultado.data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'RESUMEN DE REPORTE MENSUAL');
-            XLSX.utils.book_set_sheet_state(wb, 'RESUMEN DE REPORTE MENSUAL', 'visible');
-            
-            // Formato columna A como texto
-            ws['A']['t'] = 's';
-            
-            downloadBtn.style.display = 'inline-block';
-            downloadBtn.href = URL.createObjectURL(new Blob([s2ab(XLSX.write(wb, { bookType: 'xlsx', type: 'binary' }))], 
-                { type: 'application/octet-stream' }));
-            downloadBtn.download = 'RESUMEN_MENSUAL_consolidado.xlsx';
-            
-            clearBtn.style.display = 'inline-block';
-            clearBtn.onclick = () => {
-                datosBrutos = null;
-                remitosData = null;
-                datosInput.value = '';
-                remitosInput.value = '';
-                datosSection.querySelector('.upload-text').textContent = 'Datos Brutos (completar)';
-                remitosSection.querySelector('.upload-text').textContent = 'Remitos (completar)';
-                resultSection.style.display = 'none';
-                checkReady();
-            };
-        }
+      const ws = XLSX.utils.json_to_sheet(finalData);
+      processedWorkbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(processedWorkbook, ws, "Consolidado");
 
-        function s2ab(s) {
-            const buf = new ArrayBuffer(s.length);
-            const view = new Uint8Array(buf);
-            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
-            return buf;
-        }
+      loading.classList.remove("show");
+      result.classList.add("show");
+      resultTitle.textContent = "✅ Archivo procesado";
+      resultText.textContent = `ASN procesados: ${finalData.length}`;
 
-        checkReady();
-    </script>
+      downloadBtn.onclick = () => {
+        XLSX.writeFile(processedWorkbook, originalFileName + "_consolidado.xlsx");
+      };
+
+    } catch (err) {
+      loading.classList.remove("show");
+      result.classList.add("show");
+      resultTitle.textContent = "❌ Error";
+      resultText.textContent = "Error procesando el archivo";
+    }
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+</script>
 </body>
 </html>
 
-    </script>
-</body>
-</html>
