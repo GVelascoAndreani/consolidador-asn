@@ -7,37 +7,52 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
-* { margin:0; padding:0; box-sizing:border-box }
-body {
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg,#667eea,#764ba2);
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:Arial,sans-serif;
+  background:linear-gradient(135deg,#667eea,#764ba2);
   min-height:100vh;
   display:flex;
   align-items:center;
-  justify-content:center;
+  justify-content:center
 }
-.container {
+.container{
   background:#fff;
   padding:40px;
   border-radius:12px;
-  width:100%;
   max-width:600px;
-  box-shadow:0 20px 60px rgba(0,0,0,.3);
+  width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.3)
 }
-.upload-area {
+.upload-area{
   border:2px dashed #667eea;
-  padding:40px;
   border-radius:8px;
+  padding:40px;
   text-align:center;
   cursor:pointer;
-  background:#f8f9ff;
+  background:#f8f9ff
 }
-.upload-area.dragover { background:#e8ebff }
-.loading { display:none; text-align:center; margin-top:20px }
-.loading.show { display:block }
-.result { display:none; margin-top:20px; padding:20px; background:#f0f9ff; border-left:4px solid #667eea }
-.result.show { display:block }
-.btn {
+.upload-area.dragover{background:#e8ebff}
+.loading{display:none;text-align:center;margin-top:20px}
+.loading.show{display:block}
+.spinner{
+  width:40px;height:40px;
+  border:4px solid #eee;
+  border-top:4px solid #667eea;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 10px
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result{
+  display:none;
+  margin-top:20px;
+  padding:20px;
+  background:#f0f9ff;
+  border-left:4px solid #667eea
+}
+.result.show{display:block}
+.btn{
   margin-top:15px;
   display:inline-block;
   background:#667eea;
@@ -45,18 +60,9 @@ body {
   padding:10px 25px;
   border-radius:6px;
   text-decoration:none;
-  cursor:pointer;
+  cursor:pointer
 }
-.spinner {
-  width:40px; height:40px;
-  border:4px solid #eee;
-  border-top:4px solid #667eea;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  margin:0 auto 10px;
-}
-@keyframes spin { to { transform:rotate(360deg) } }
-input[type=file]{ display:none }
+input[type=file]{display:none}
 </style>
 </head>
 
@@ -94,8 +100,9 @@ const downloadBtn = document.getElementById("downloadBtn");
 let processedWorkbook = null;
 let originalFileName = "";
 
+// eventos
 uploadArea.onclick = () => fileInput.click();
-uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add("dragover") };
+uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add("dragover"); };
 uploadArea.ondragleave = () => uploadArea.classList.remove("dragover");
 uploadArea.ondrop = e => {
   e.preventDefault();
@@ -110,29 +117,35 @@ function processFile(file) {
   result.classList.remove("show");
 
   const reader = new FileReader();
-
   reader.onload = e => {
     try {
-      const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+      const workbook = XLSX.read(new Uint8Array(e.target.result), { type:"array" });
 
       const dataSheet = workbook.Sheets["Data"];
       const detailSheet = workbook.Sheets["Detail"];
-      if (!dataSheet || !detailSheet) throw "Faltan hojas";
+      if (!dataSheet || !detailSheet) throw "Faltan hojas Data o Detail";
 
-      // -------- DATA --------
-      const dataRows = XLSX.utils.sheet_to_json(dataSheet, { defval: "" });
+      // ---------- DATA ----------
+      const dataRows = XLSX.utils.sheet_to_json(dataSheet, { defval:"" });
       const remitoPorASN = {};
       dataRows.forEach(r => {
-        remitoPorASN[r.RECEIPTKEY] = r.EXTERNALRECEIPTKEY2;
+        if (r.RECEIPTKEY) {
+          remitoPorASN[String(r.RECEIPTKEY).trim()] = r.EXTERNALRECEIPTKEY2;
+        }
       });
 
-      // -------- DETAIL --------
-      const detailRows = XLSX.utils.sheet_to_json(detailSheet, { defval: "" });
+      // ---------- DETAIL ----------
+      const detailRows = XLSX.utils.sheet_to_json(detailSheet, { defval:"" });
       const asnMap = {};
 
       detailRows.forEach(r => {
-        if (r.QTYRECEIVED > 0 && r.QTYEXPECTED == 0) {
-          const asn = r.RECEIPTKEY;
+        const asn = String(r.RECEIPTKEY || "").trim();
+        const qtyReceived = Number(r.QTYRECEIVED);
+        const qtyExpected = Number(r.QTYEXPECTED);
+
+        if (!asn) return;
+
+        if (qtyReceived > 0 && qtyExpected === 0) {
           if (!asnMap[asn]) {
             asnMap[asn] = {
               ASN: asn,
@@ -145,10 +158,14 @@ function processFile(file) {
             };
           }
           asnMap[asn].Pallets++;
-          if (r.LOTTABLE02) asnMap[asn].Lotes.add(r.LOTTABLE02);
+
+          if (r.LOTTABLE02 && String(r.LOTTABLE02).trim() !== "") {
+            asnMap[asn].Lotes.add(String(r.LOTTABLE02).trim());
+          }
         }
       });
 
+      // ---------- RESULT ----------
       const finalData = Object.values(asnMap).map(x => ({
         ASN: x.ASN,
         Remito: x.Remito,
