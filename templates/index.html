@@ -7,86 +7,66 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin:0; padding:0; box-sizing:border-box }
 body {
   font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .container {
-  background: white;
-  padding: 40px;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 600px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  background:#fff;
+  padding:40px;
+  border-radius:12px;
+  width:100%;
+  max-width:600px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3);
 }
-h1 { margin-bottom: 10px; }
-.subtitle { color: #666; margin-bottom: 30px; }
-
 .upload-area {
-  border: 2px dashed #667eea;
-  padding: 40px;
-  text-align: center;
-  border-radius: 8px;
-  cursor: pointer;
-  background: #f8f9ff;
+  border:2px dashed #667eea;
+  padding:40px;
+  border-radius:8px;
+  text-align:center;
+  cursor:pointer;
+  background:#f8f9ff;
 }
-.upload-area.dragover {
-  background: #e8ebff;
-}
-.upload-icon { font-size: 48px; }
-.upload-text { font-weight: bold; }
-
-input[type="file"] { display: none; }
-
-.loading { display: none; text-align: center; margin-top: 20px; }
-.loading.show { display: block; }
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #eee;
-  border-top: 4px solid #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 10px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.result {
-  display: none;
-  margin-top: 20px;
-  padding: 20px;
-  background: #f0f9ff;
-  border-left: 4px solid #667eea;
-}
-.result.show { display: block; }
-
+.upload-area.dragover { background:#e8ebff }
+.loading { display:none; text-align:center; margin-top:20px }
+.loading.show { display:block }
+.result { display:none; margin-top:20px; padding:20px; background:#f0f9ff; border-left:4px solid #667eea }
+.result.show { display:block }
 .btn {
-  margin-top: 15px;
-  display: inline-block;
-  background: #667eea;
-  color: white;
-  padding: 10px 25px;
-  border-radius: 6px;
-  text-decoration: none;
-  cursor: pointer;
+  margin-top:15px;
+  display:inline-block;
+  background:#667eea;
+  color:#fff;
+  padding:10px 25px;
+  border-radius:6px;
+  text-decoration:none;
+  cursor:pointer;
 }
+.spinner {
+  width:40px; height:40px;
+  border:4px solid #eee;
+  border-top:4px solid #667eea;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 10px;
+}
+@keyframes spin { to { transform:rotate(360deg) } }
+input[type=file]{ display:none }
 </style>
 </head>
 
 <body>
 <div class="container">
   <h1>🚀 Consolidador ASN</h1>
-  <p class="subtitle">Subí el archivo Excel</p>
+  <p>Subí el archivo Excel</p>
 
   <div class="upload-area" id="uploadArea">
-    <div class="upload-icon">📊</div>
-    <div class="upload-text">Arrastrá el archivo o hacé click</div>
+    📊 Arrastrá el archivo o hacé click
     <input type="file" id="fileInput" accept=".xlsx,.xls">
   </div>
 
@@ -114,9 +94,8 @@ const downloadBtn = document.getElementById("downloadBtn");
 let processedWorkbook = null;
 let originalFileName = "";
 
-// Eventos
 uploadArea.onclick = () => fileInput.click();
-uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add("dragover"); };
+uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add("dragover") };
 uploadArea.ondragleave = () => uploadArea.classList.remove("dragover");
 uploadArea.ondrop = e => {
   e.preventDefault();
@@ -132,49 +111,45 @@ function processFile(file) {
 
   const reader = new FileReader();
 
-  reader.onload = function (e) {
+  reader.onload = e => {
     try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
+      const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
 
       const dataSheet = workbook.Sheets["Data"];
       const detailSheet = workbook.Sheets["Detail"];
       if (!dataSheet || !detailSheet) throw "Faltan hojas";
 
-      // DATA
-      const dataRows = XLSX.utils.sheet_to_json(dataSheet, { header: 1 });
-      const asnRemito = {};
-      dataRows.slice(1).forEach(r => {
-        if (r[0]) asnRemito[r[0]] = r[27]; // AB
+      // -------- DATA --------
+      const dataRows = XLSX.utils.sheet_to_json(dataSheet, { defval: "" });
+      const remitoPorASN = {};
+      dataRows.forEach(r => {
+        remitoPorASN[r.RECEIPTKEY] = r.EXTERNALRECEIPTKEY2;
       });
 
-      // DETAIL
-      const detailRows = XLSX.utils.sheet_to_json(detailSheet, { header: 1 });
-      const resultMap = {};
+      // -------- DETAIL --------
+      const detailRows = XLSX.utils.sheet_to_json(detailSheet, { defval: "" });
+      const asnMap = {};
 
-      detailRows.slice(1).forEach(r => {
-        const asn = r[0];
-        const cantEsperada = r[13];
-        const cantRecibida = r[14];
-
-        if (asn && cantRecibida > 0 && cantEsperada === 0) {
-          if (!resultMap[asn]) {
-            resultMap[asn] = {
+      detailRows.forEach(r => {
+        if (r.QTYRECEIVED > 0 && r.QTYEXPECTED == 0) {
+          const asn = r.RECEIPTKEY;
+          if (!asnMap[asn]) {
+            asnMap[asn] = {
               ASN: asn,
-              Remito: asnRemito[asn] || "",
-              Propietario: r[4],
-              FechaRecepcion: r[33],
-              ASNExterna: r[39],
+              Remito: remitoPorASN[asn] || "",
+              Propietario: r.STORERKEY,
+              FechaRecepcion: r.DATERECEIVED,
+              ASNExterna: r.EXTERNRECEIPTKEY,
               Pallets: 0,
               Lotes: new Set()
             };
           }
-          resultMap[asn].Pallets++;
-          if (r[16]) resultMap[asn].Lotes.add(r[16]);
+          asnMap[asn].Pallets++;
+          if (r.LOTTABLE02) asnMap[asn].Lotes.add(r.LOTTABLE02);
         }
       });
 
-      const finalData = Object.values(resultMap).map(x => ({
+      const finalData = Object.values(asnMap).map(x => ({
         ASN: x.ASN,
         Remito: x.Remito,
         Propietario: x.Propietario,
@@ -193,15 +168,15 @@ function processFile(file) {
       resultTitle.textContent = "✅ Archivo procesado";
       resultText.textContent = `ASN procesados: ${finalData.length}`;
 
-      downloadBtn.onclick = () => {
+      downloadBtn.onclick = () =>
         XLSX.writeFile(processedWorkbook, originalFileName + "_consolidado.xlsx");
-      };
 
     } catch (err) {
       loading.classList.remove("show");
       result.classList.add("show");
       resultTitle.textContent = "❌ Error";
       resultText.textContent = "Error procesando el archivo";
+      console.error(err);
     }
   };
 
@@ -210,4 +185,3 @@ function processFile(file) {
 </script>
 </body>
 </html>
-
