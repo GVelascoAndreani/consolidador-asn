@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consolidador ASN</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -33,6 +34,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             background: #f8f9ff;
+            margin-bottom: 20px;
         }
         .upload-area:hover { background: #f0f2ff; border-color: #764ba2; }
         .upload-area.dragover {
@@ -55,7 +57,9 @@
             font-size: 16px;
             font-weight: 600;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            margin-top: 20px;
+            margin: 5px;
+            text-decoration: none;
+            text-align: center;
         }
         .btn:hover {
             transform: translateY(-2px);
@@ -87,6 +91,7 @@
             margin: 0 auto 15px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .file-name { font-weight: bold; color: #667eea; }
     </style>
 </head>
 <body>
@@ -101,21 +106,121 @@
             <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
         </div>
         
-        <button class="btn" id="uploadBtn">Seleccionar archivo</button>
-        
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Procesando archivo...</p>
         </div>
         
-      <div class="result" id="result">
-          <div class="result" id="result">
-    <h3 id="
+        <div class="result" id="result">
+            <h3 id="resultTitle">✅ Archivo procesado</h3>
+            <p id="resultText"></p>
+            <a id="downloadBtn" class="btn" style="display:none;">📥 Descargar Excel Procesado</a>
+        </div>
+    </div>
 
-    <h3 id="resultTitle">✅ Archivo procesado</h3>
-    <p id="resultText"></p>
-    <a id="downloadBtn" class="btn" style="display:none;" download>📥 Descargar Excel Procesado</a>
-</div>
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultText = document.getElementById('resultText');
+        const downloadBtn = document.getElementById('downloadBtn');
+        let processedWorkbook = null;
+        let originalFileName = '';
 
+        // Click en área de upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag & Drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        // Selección de archivo
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        function processFile(file) {
+            originalFileName = file.name.replace(/\.[^/.]+$/, "");
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Procesamiento simple: consolidar todas las hojas en una
+                    const consolidatedData = [];
+                    workbook.SheetNames.forEach(sheetName => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        consolidatedData.push(...jsonData);
+                    });
+
+                    // Crear nueva hoja consolidada
+                    const newWorksheet = XLSX.utils.json_to_sheet(consolidatedData);
+                    processedWorkbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(processedWorkbook, newWorksheet, 'Consolidado');
+
+                    showResult(`Archivo "${originalFileName}" procesado exitosamente. Se consolidaron ${consolidatedData.length} registros.`);
+                } catch (error) {
+                    showError('Error al procesar el archivo. Verifica que sea un Excel o CSV válido.');
+                    console.error(error);
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+            showLoading();
+        }
+
+        function showLoading() {
+            loading.classList.add('show');
+            result.classList.remove('show');
+        }
+
+        function showResult(text) {
+            loading.classList.remove('show');
+            result.classList.remove('error');
+            result.classList.add('show');
+            resultTitle.textContent = '✅ Archivo procesado';
+            resultText.textContent = text;
+            downloadBtn.style.display = 'inline-block';
+            downloadBtn.href = '#';
+            downloadBtn.onclick = downloadFile;
+        }
+
+        function showError(text) {
+            loading.classList.remove('show');
+            result.classList.add('show', 'error');
+            resultTitle.textContent = '❌ Error';
+            resultText.textContent = text;
+            downloadBtn.style.display = 'none';
+        }
+
+        function downloadFile() {
+            if (processedWorkbook) {
+                const fileName = `${originalFileName}_consolidado.xlsx`;
+                XLSX.writeFile(processedWorkbook, fileName);
+            }
+        }
+    </script>
 </body>
 </html>
